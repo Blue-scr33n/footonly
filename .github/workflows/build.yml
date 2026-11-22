@@ -1,0 +1,31 @@
+name: Build APK
+on:
+  workflow_dispatch:
+  push:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unzip project
+        run: unzip -q "*.zip"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.9
+      - name: Get detection model
+        working-directory: FootOnly
+        run: |
+          mkdir -p app/src/main/assets
+          curl -fL -o app/src/main/assets/320n.onnx https://github.com/notAI-tech/NudeNet/releases/download/v3.4-weights/320n.onnx
+          test $(stat -c%s app/src/main/assets/320n.onnx) -gt 1000000
+      - name: Build
+        working-directory: FootOnly
+        run: gradle assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FootOnly-debug-apk
+          path: FootOnly/app/build/outputs/apk/debug/*.apk
